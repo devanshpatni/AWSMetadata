@@ -15,8 +15,8 @@ metadata() {
         if [[ $key == */ ]]; then  # for directories in metadata
             metadata "$opt$key"
         else
-            local val=$(curl -s "$METADATA_URL/$opt$key" -H "X-aws-ec2-metadata-token: $TOKEN") # Print metadata in JSON
-            echo "\"$opt$key\": \"$val\""
+                local val=$(curl -s "$METADATA_URL/$opt$key" -H "X-aws-ec2-metadata-token: $TOKEN" | jq -Rs .) # Print metadata in JSON
+            echo "\"$opt$key\": $val"
         fi
     done
 }
@@ -24,18 +24,16 @@ metadata() {
 read -p "Enter a metadata key to retrive (default = whole data ): " key # Taking input from user for metadata key
 
 if [ -z "$key" ]; then  # Fetch whole metadata and convert in JSON
-    maindata=$(echo "{")  
+    maindata="{"  
     maindata+=$(metadata "" | paste -sd, -)
     maindata+="}"
     echo "$maindata" | jq .
 else   # Fetch metadata for a specific option
     if curl -s --head "$METADATA_URL/$key" -H "X-aws-ec2-metadata-token: $TOKEN" | grep -q "200 OK"; then # to validate the key's presence 
-        val=$(curl -s "$METADATA_URL/$key" -H "X-aws-ec2-metadata-token: $TOKEN")
-        echo "{\"$key\": \"$val\"}" | jq .
+       val=$(curl -s "$METADATA_URL/$key" -H "X-aws-ec2-metadata-token: $TOKEN" | jq -Rs .)
+        echo "{\"$key\": $val"} | jq .
     else
         echo "Invalid metadata key: $key"
         exit 1
     fi
 fi
-
-        
